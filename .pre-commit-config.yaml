@@ -1,0 +1,56 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: fix-byte-order-marker
+      - id: detect-private-key
+      - id: forbid-submodules
+      - id: pretty-format-json
+        args: [--autofix, --no-sort-keys, --indent=2]
+        exclude: \.jsonc$
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1-1
+    hooks:
+      - id: shellcheck
+        types: [shell]
+  - repo: https://github.com/maxwinterstein/shfmt-py
+    rev: v4.1.0
+    hooks:
+      - id: shfmt
+        args: [-i=2, -ci, -sr, -ln=posix, -w]
+        types: [shell]
+  - repo: https://github.com/AleksaC/hadolint-py
+    rev: v2.15.1
+    hooks:
+      - id: hadolint
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.21.0
+    hooks:
+      - id: yamlfmt
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        args:
+          - --format=parsable
+          - --config-data=relaxed
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 1.0.0
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-frontmatter
+ci:
+  autofix_commit_msg: "chore(pre-commit): auto-fix pre-commit issues"
+  autofix_prs: true
+  autoupdate_commit_msg: "chore(pre-commit): auto-update pre-commit hooks"
+  autoupdate_schedule: weekly
