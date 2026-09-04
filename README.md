@@ -30,7 +30,7 @@ scripts/new-env gh/me/myrepo
 scripts/agent gh/me/myrepo
 ```
 
-詳細は `scripts/README.md` を参照すること。
+詳細は [scripts/README.md](scripts/README.md) を参照すること。
 
 ### worklogs
 
