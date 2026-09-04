@@ -12,7 +12,7 @@ services:
     working_dir: /workspaces/main
     volumes:
       - type: bind
-        source: ~/<forge>/<org>/<repo>
+        source: ${REPOS_ROOT:-${HOME}}/<forge>/<org>/<repo>
         target: /workspaces/main
       - type: bind
         source: ../opencode

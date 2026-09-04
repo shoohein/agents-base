@@ -16,13 +16,16 @@ arguments:
   <forge>/<org>/<repo>   環境の配置先 (例: gh/me/myrepo, gl/mygroup/myproject)
                          forge: Gitホスティング識別子 [a-z0-9_-]+ (例: gh, gl, gb)
   <org>/<repo>           forge省略時は gh として扱う (後方互換)
-  [host-repo-path]       ホストの作業リポジトリ絶対パス (省略時は ~/<forge>/<org>/<repo>)
+  [host-repo-path]       ホストの作業リポジトリ絶対パス (省略時は ${REPOS_ROOT:-$HOME}/<forge>/<org>/<repo>)
 
 examples:
   new-env gh/me/myrepo
   new-env gh/me/myrepo ~/src/myrepo
   new-env me/myrepo                    # gh/me/myrepo と同等
   new-env gl/mygroup/myproject
+
+environment:
+  REPOS_ROOT            クローン集約ルート
 
 see also:
   scripts/agent <env>    生成した環境を起動する
@@ -79,8 +82,7 @@ case "$REPO_SLUG" in
     fi
     DEST="$REPO_SLUG"
     if [ -z "$HOST_REPO_ARG" ]; then
-      # shellcheck disable=SC2088 # tilde is literal for compose.yaml placeholder
-      HOST_REPO="~/$REPO_SLUG"
+      HOST_REPO="${REPOS_ROOT:-$HOME}/$REPO_SLUG"
     else
       HOST_REPO="$HOST_REPO_ARG"
     fi
@@ -90,8 +92,7 @@ case "$REPO_SLUG" in
     FORGE="gh"
     DEST="gh/$REPO_SLUG"
     if [ -z "$HOST_REPO_ARG" ]; then
-      # shellcheck disable=SC2088 # tilde is literal for compose.yaml placeholder
-      HOST_REPO="~/gh/$REPO_SLUG"
+      HOST_REPO="${REPOS_ROOT:-$HOME}/gh/$REPO_SLUG"
     else
       HOST_REPO="$HOST_REPO_ARG"
     fi
@@ -118,11 +119,10 @@ mkdir -p "$(dirname "$DEST")"
 cp -a template "$DEST"
 
 # compose.yaml のプレースホルダを置換
-# 新プレースホルダ: ~/<forge>/<org>/<repo>
-# 旧プレースホルダ: ~/gh/<org>/<repo> (後方互換)
-sed -i "s|~/<forge>/<org>/<repo>|$HOST_REPO|g" "$DEST/env/compose.yaml"
-sed -i "s|~/gh/<org>/<repo>|$HOST_REPO|g" "$DEST/env/compose.yaml"
-sed -i "s|agents/<forge>/<org>/<repo>|agents/$DEST|g" "$DEST/env/compose.yaml"
+_ESCAPED_HOST_REPO="$(printf '%s' "$HOST_REPO" | sed 's/[&|\\]/\\&/g')"
+_ESCAPED_DEST="$(printf '%s' "$DEST" | sed 's/[&|\\]/\\&/g')"
+sed -i "s|\${REPOS_ROOT:-\${HOME}}/<forge>/<org>/<repo>|$_ESCAPED_HOST_REPO|g" "$DEST/env/compose.yaml"
+sed -i "s|agents/<forge>/<org>/<repo>|agents/$_ESCAPED_DEST|g" "$DEST/env/compose.yaml"
 
 mkdir -p "$DEST/worklogs"
 
