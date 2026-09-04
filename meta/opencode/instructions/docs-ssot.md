@@ -21,8 +21,8 @@
 
 ### 3. 自己記述性の活用 — 設定自体が説明を兼ねる場合は補足文を書かない
 
-- 例: `${AGENT_HOME:?export AGENT_HOME required}` は `fail-fast` の説明を兼ねる。
-- 例: `~/<forge>/<org>/<repo>` プレースホルダは `scripts/new-env` のコメントが正本。
+- 例: `${VAR:?msg}` / `${VAR:-default}` は `fail-fast` / `fallback` の説明を兼ねる。
+- 例: `compose.yaml` のプレースホルダ定義は `scripts/new-env` のコメントが正本。
 
 ## 判断基準
 
