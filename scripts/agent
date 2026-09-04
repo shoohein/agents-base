@@ -37,7 +37,7 @@ list_envs() {
 
 SCRIPT_PATH="$(readlink -f -- "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
-ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+: "${ROOT:=$(cd "$SCRIPT_DIR/.." && pwd)}"
 
 # --- parse wrapper options (strictly before <env>) ---
 BUILD_FLAG=""
