@@ -1,0 +1,138 @@
+#!/bin/sh -e
+# agent - env配下の docker compose で opencode を起動する
+# usage: agent [options] <env> [opencode_args...]
+# see also: scripts/new-env (forge/org/repo パース), compose.yaml (volumes 定義)
+
+usage() {
+  cat << 'USAGE' >&2
+usage: agent [options] <env> [opencode_args...]
+       agent --help | -h
+       agent --list | ls
+
+options:
+  --build       docker compose run に --build を付与 (default: なし)
+  --help, -h    このヘルプを表示 (envなしで実行)
+  --list, ls    利用可能な env 一覧を表示
+
+<env>:
+  meta                          メタ環境
+  <forge>/<org>/<repo>          作業環境
+  <org>/<repo>                  forge省略時は gh
+USAGE
+}
+
+list_envs() {
+  # ROOT は呼び出し元で解決済みを想定。未設定ならスクリプト位置から推定
+  _root="${ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+  echo "meta"
+  for _d in "$_root"/*/*/*; do
+    if [ -f "$_d/env/compose.yaml" ]; then
+      case "$_d" in
+        "$_root/template"/*) continue ;;
+      esac
+      echo "$_d" | sed "s|^$_root/||"
+    fi
+  done | sort
+}
+
+SCRIPT_PATH="$(readlink -f -- "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# --- parse wrapper options (strictly before <env>) ---
+BUILD_FLAG=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --build)
+      BUILD_FLAG="--build"
+      shift
+      ;;
+    --help | -h)
+      usage
+      exit 0
+      ;;
+    --list | ls)
+      list_envs
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    --*)
+      echo "error: unknown option '$1'" >&2
+      usage
+      exit 1
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [ $# -eq 0 ]; then
+  echo "error: <env> is required" >&2
+  usage
+  exit 1
+fi
+
+ENV_SLUG="$1"
+shift
+
+# --- normalize ENV_SLUG to ENV_DIR (see also scripts/new-env) ---
+case "$ENV_SLUG" in
+  meta)
+    ENV_DIR="$ROOT/meta"
+    ;;
+  */*/*)
+    FORGE="$(echo "$ENV_SLUG" | cut -d/ -f1)"
+    if ! echo "$FORGE" | grep -Eq '^[a-z0-9_-]+$'; then
+      echo "error: invalid forge '$FORGE' (allowed: [a-z0-9_-]+)" >&2
+      exit 1
+    fi
+    ENV_DIR="$ROOT/$ENV_SLUG"
+    ;;
+  */*)
+    ENV_DIR="$ROOT/gh/$ENV_SLUG"
+    ;;
+  *)
+    echo "error: <env> must be 'meta' or <forge>/<org>/<repo> or <org>/<repo> (got '$ENV_SLUG')" >&2
+    usage
+    exit 1
+    ;;
+esac
+
+# --- Fail Fast validations ---
+if [ ! -d "$ENV_DIR" ]; then
+  echo "error: env '$ENV_SLUG' not found: $ENV_DIR" >&2
+  echo "available envs:" >&2
+  list_envs >&2 || true
+  exit 1
+fi
+
+if [ ! -f "$ENV_DIR/env/compose.yaml" ]; then
+  echo "error: compose.yaml not found in $ENV_DIR/env/compose.yaml" >&2
+  exit 1
+fi
+
+if [ -z "${AGENT_HOME:-}" ]; then
+  echo "error: AGENT_HOME is not set (export AGENT_HOME required, see compose.yaml)" >&2
+  exit 1
+fi
+
+# --- TTY detection (avoid hang on pipe) ---
+if [ -t 0 ] && [ -t 1 ]; then
+  TTY_FLAG="-it"
+else
+  TTY_FLAG="-T"
+fi
+
+# --- exec docker compose ---
+cd "$ENV_DIR"
+
+if [ -n "$BUILD_FLAG" ]; then
+  exec docker compose -f env/compose.yaml run --rm "$TTY_FLAG" --build agent opencode2 "$@"
+else
+  exec docker compose -f env/compose.yaml run --rm "$TTY_FLAG" agent opencode2 "$@"
+fi
