@@ -1,0 +1,29 @@
+services:
+  agent:
+    image: agents/meta
+    build:
+      context: .
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+    working_dir: /workspaces/main
+    volumes:
+      - type: bind
+        source: ../..
+        target: /workspaces/main
+      - type: bind
+        source: ../worklogs
+        target: /worklogs
+      - type: bind
+        source: .
+        target: /agent-env
+      - type: bind
+        source: ../opencode
+        target: /workspaces/.opencode
+      - type: bind
+        source: ../../opencode
+        target: /.opencode
+      - type: bind
+        source: ${AGENT_HOME:?export AGENT_HOME required}
+        target: /home/agent
