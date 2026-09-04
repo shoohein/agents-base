@@ -1,0 +1,1 @@
+FROM agent/opencode:latest
