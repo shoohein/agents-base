@@ -1,19 +1,69 @@
 #!/bin/sh -e
-# new-env: template から <forge>/<org>/<repo> 環境を生成する
-# forge: Gitホスティングサービス識別子 (例: gh=GitHub, gl=GitLab, gb=GitBucket)
-# usage: scripts/new-env <forge>/<org>/<repo> [host-repo-path]
-#        scripts/new-env <org>/<repo> [host-repo-path]  # forge 省略時は gh (後方互換)
-#   forge/org/repo : 環境の配置先（例: gh/me/myrepo, gl/mygroup/myproject）
-#   host-repo       : ホストの作業リポジトリ絶対パス（省略時は ~/<forge>/<org>/<repo>）
+# new-env - template から <forge>/<org>/<repo> 環境を生成する
+# usage: new-env [options] <forge>/<org>/<repo> [host-repo-path]
+# see also: scripts/agent (forge/org/repo パース), template/env/compose.yaml (volumes 定義)
 
-if [ $# -lt 1 ]; then
-  echo "usage: $0 <forge>/<org>/<repo> [host-repo-path]" >&2
-  echo "       $0 <org>/<repo> [host-repo-path]  # forge defaults to gh" >&2
+usage() {
+  cat << 'USAGE' >&2
+usage: new-env [options] <forge>/<org>/<repo> [host-repo-path]
+       new-env [options] <org>/<repo> [host-repo-path]  # forge 省略時は gh
+       new-env --help | -h
+
+options:
+  --help, -h    このヘルプを表示
+
+arguments:
+  <forge>/<org>/<repo>   環境の配置先 (例: gh/me/myrepo, gl/mygroup/myproject)
+                         forge: Gitホスティング識別子 [a-z0-9_-]+ (例: gh, gl, gb)
+  <org>/<repo>           forge省略時は gh として扱う (後方互換)
+  [host-repo-path]       ホストの作業リポジトリ絶対パス (省略時は ~/<forge>/<org>/<repo>)
+
+examples:
+  new-env gh/me/myrepo
+  new-env gh/me/myrepo ~/src/myrepo
+  new-env me/myrepo                    # gh/me/myrepo と同等
+  new-env gl/mygroup/myproject
+
+see also:
+  scripts/agent <env>    生成した環境を起動する
+USAGE
+}
+
+# --- parse wrapper options (strictly before <repo>) ---
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --help | -h)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    --*)
+      echo "error: unknown option '$1'" >&2
+      usage
+      exit 1
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [ $# -eq 0 ]; then
+  echo "error: <forge>/<org>/<repo> is required" >&2
+  usage
   exit 1
 fi
 
 REPO_SLUG="$1"
 HOST_REPO_ARG="${2:-}"
+if [ $# -gt 2 ]; then
+  echo "error: too many arguments (expected 1-2, got $#)" >&2
+  usage
+  exit 1
+fi
 
 # forge 判定: スラッシュ数で分岐
 #   2スラッシュ以上 (forge/org/repo) → forge を抽出
@@ -47,7 +97,8 @@ case "$REPO_SLUG" in
     fi
     ;;
   *)
-    echo "error: REPO_SLUG must be <forge>/<org>/<repo> or <org>/<repo> (got '$REPO_SLUG')" >&2
+    echo "error: <forge>/<org>/<repo> or <org>/<repo> expected (got '$REPO_SLUG')" >&2
+    usage
     exit 1
     ;;
 esac
