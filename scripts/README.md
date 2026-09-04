@@ -26,7 +26,7 @@ scripts/new-env gl/mygroup/myproject
 
 `forge` を省略した場合は `gh` として扱われる。`host-repo-path` を省略した場合は `~/<forge>/<org>/<repo>` が作業リポジトリとして設定される。
 
-生成物は `<forge>/<org>/<repo>/` である。生成後は `env/compose.yaml` の内容を確認し、環境を起動する。
+生成物は `<forge>/<org>/<repo>/` である。生成後は `env/compose.yaml` の内容を確認し、`scripts/agent <forge>/<org>/<repo>` で起動する。
 
 ## agent: エージェントの起動
 
