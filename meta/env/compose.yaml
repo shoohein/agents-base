@@ -6,6 +6,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
+      OPENCODE_CONFIG: /agent-env/opencode.jsonc
       TZ: ${TZ:-Asia/Tokyo}
     working_dir: /workspaces/main
     volumes:

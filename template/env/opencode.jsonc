@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permissions": [
+    {
+      "action": "external_directory",
+      "resource": "/worklogs/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "/agent-env/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "/.opencode/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "/workspaces/.opencode/**",
+      "effect": "allow"
+    }
+  ],
+  "references": {
+    "worklogs": {
+      "path": "/worklogs",
+      "description": "作業記録"
+    },
+    "agent-env": {
+      "path": "/agent-env",
+      "description": "エージェント環境定義"
+    }
+  }
+}
