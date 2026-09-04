@@ -77,4 +77,4 @@ mkdir -p "$DEST/worklogs"
 
 echo "created $DEST"
 echo "  host repo : $HOST_REPO -> /workspaces/main"
-echo "  next: cd $DEST/env && docker compose up -d"
+echo "  next: scripts/agent $REPO_SLUG"
