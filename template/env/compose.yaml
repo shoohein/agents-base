@@ -8,6 +8,7 @@ services:
     environment:
       OPENCODE_CONFIG: /agent-env/opencode.jsonc
       TZ: ${TZ:-Asia/Tokyo}
+      SSH_AUTH_SOCK: /ssh-agent
     working_dir: /workspaces/main
     volumes:
       - type: bind
@@ -28,3 +29,7 @@ services:
       - type: bind
         source: ${AGENT_HOME:?export AGENT_HOME required}
         target: /home/agent
+      - type: bind
+        source: ${SSH_AUTH_SOCK:-/dev/null}
+        target: /ssh-agent
+        read_only: true
