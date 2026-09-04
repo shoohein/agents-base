@@ -1,0 +1,80 @@
+#!/bin/sh -e
+# new-env: template から <forge>/<org>/<repo> 環境を生成する
+# forge: Gitホスティングサービス識別子 (例: gh=GitHub, gl=GitLab, gb=GitBucket)
+# usage: scripts/new-env <forge>/<org>/<repo> [host-repo-path]
+#        scripts/new-env <org>/<repo> [host-repo-path]  # forge 省略時は gh (後方互換)
+#   forge/org/repo : 環境の配置先（例: gh/me/myrepo, gl/mygroup/myproject）
+#   host-repo       : ホストの作業リポジトリ絶対パス（省略時は ~/<forge>/<org>/<repo>）
+
+if [ $# -lt 1 ]; then
+  echo "usage: $0 <forge>/<org>/<repo> [host-repo-path]" >&2
+  echo "       $0 <org>/<repo> [host-repo-path]  # forge defaults to gh" >&2
+  exit 1
+fi
+
+REPO_SLUG="$1"
+HOST_REPO_ARG="${2:-}"
+
+# forge 判定: スラッシュ数で分岐
+#   2スラッシュ以上 (forge/org/repo) → forge を抽出
+#   1スラッシュ (org/repo)           → forge=gh として後方互換
+case "$REPO_SLUG" in
+  */*/*)
+    FORGE="$(echo "$REPO_SLUG" | cut -d/ -f1)"
+    REST="$(echo "$REPO_SLUG" | cut -d/ -f2-)"
+    # forge バリデーション: 英小文字・数字・ハイフン・アンダースコアのみ
+    if ! echo "$FORGE" | grep -Eq '^[a-z0-9_-]+$'; then
+      echo "error: invalid forge '$FORGE' (allowed: [a-z0-9_-]+)" >&2
+      exit 1
+    fi
+    DEST="$REPO_SLUG"
+    if [ -z "$HOST_REPO_ARG" ]; then
+      # shellcheck disable=SC2088 # tilde is literal for compose.yaml placeholder
+      HOST_REPO="~/$REPO_SLUG"
+    else
+      HOST_REPO="$HOST_REPO_ARG"
+    fi
+    ;;
+  */*)
+    # 後方互換: forge 省略 → gh
+    FORGE="gh"
+    DEST="gh/$REPO_SLUG"
+    if [ -z "$HOST_REPO_ARG" ]; then
+      # shellcheck disable=SC2088 # tilde is literal for compose.yaml placeholder
+      HOST_REPO="~/gh/$REPO_SLUG"
+    else
+      HOST_REPO="$HOST_REPO_ARG"
+    fi
+    ;;
+  *)
+    echo "error: REPO_SLUG must be <forge>/<org>/<repo> or <org>/<repo> (got '$REPO_SLUG')" >&2
+    exit 1
+    ;;
+esac
+
+if [ -e "$DEST" ]; then
+  echo "error: $DEST already exists" >&2
+  exit 1
+fi
+
+if [ ! -d template ]; then
+  echo "error: template/ not found" >&2
+  exit 1
+fi
+
+# template をコピー
+mkdir -p "$(dirname "$DEST")"
+cp -a template "$DEST"
+
+# compose.yaml のプレースホルダを置換
+# 新プレースホルダ: ~/<forge>/<org>/<repo>
+# 旧プレースホルダ: ~/gh/<org>/<repo> (後方互換)
+sed -i "s|~/<forge>/<org>/<repo>|$HOST_REPO|g" "$DEST/env/compose.yaml"
+sed -i "s|~/gh/<org>/<repo>|$HOST_REPO|g" "$DEST/env/compose.yaml"
+sed -i "s|agents/<forge>/<org>/<repo>|agents/$DEST|g" "$DEST/env/compose.yaml"
+
+mkdir -p "$DEST/worklogs"
+
+echo "created $DEST"
+echo "  host repo : $HOST_REPO -> /workspaces/main"
+echo "  next: cd $DEST/env && docker compose up -d"
